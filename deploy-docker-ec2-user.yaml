@@ -1,0 +1,55 @@
+---
+- name: Install python3, docker, docker-compose
+  hosts: docker_server
+  become: yes
+  gather_facts: False
+  tasks:
+    - name: Ensure python3 and docker are installed
+      vars:
+        ansible_python_interpreter: /usr/bin/python #Uses python2 before the python3 update
+      yum: #yum module does not work with python3 so have to use python2
+        name:
+          - python3
+          - docker
+        update_cache: yes
+        state: present
+    - name: Install docker-compose
+      get_url:
+        url: https://github.com/docker/compose/releases/download/v2.6.1/docker-compose-Linux-{{lookup('pipe', 'uname -m')}}
+        dest: /usr/local/bin/docker-compose
+        mode: +x
+    - name: Start docker daemon
+      systemd:
+        name: docker
+        state: started
+    - name: Install docker python module #For ec2 to work with ansible docker_image collection
+      pip:
+        name:
+          - docker
+          - docker-compose
+
+
+- name: Add ec2-user to docker group
+  hosts: docker_server
+  become: yes
+  tasks:
+    - name: Add ec2-user to docker group
+      user:
+        name: ec2-user
+        groups: docker
+        append: yes
+    - name: Reconnect to server session #Resets connection w/ ec2-user groups
+      meta: reset_connection
+
+
+- name: Start docker containers
+  hosts: docker_server
+  tasks:
+    - name: Copy docker-compose
+      copy:
+        src: /Users/martezconner/Desktop/projects/devops/ansible-base/docker-compose.test.yaml
+        dest: /home/ec2-user/docker-compose.yaml
+    - name: Start container from compose
+      docker_compose:
+        project_src: /home/ec2-user
+        state: present

@@ -1,0 +1,47 @@
+---
+- name: Install node and npm
+  hosts: node_server
+  tasks:
+  - name: Update apt repo and cache
+    apt: update_cache=yes force_apt_get=yes cache_valid_time=3600
+  - name: Install nodejs and npm
+    apt:
+      pkg:
+        - nodejs
+        - npm
+
+- name: Create new linux user for node app
+  hosts: node_server
+  tasks:
+    - name: Create linux user
+      user:
+        name: "{{name}}"
+        comment: NodeJs user
+        group: admin ### limits priveleges
+
+- name: Deploy nodejs app
+  hosts: node_server
+  become: True ### enables become_user attribute
+  become_user: "{{name}}"
+  vars_files:
+    - project-vars
+  tasks:
+    - name: Unpack the nodejs file
+      unarchive:
+        src: "{{location}}/nodejs-app-{{version}}.tgz" ### Copy npm tar file full path
+        dest: "{{user_home_dir}}" ### Copies to user folder path
+        remote_src: yes
+    - name: Install dependencies
+      npm:
+        path: "{{user_home_dir}}/package"
+    - name: Start the application
+      command:
+        chdir: "{{user_home_dir}}/package/app"
+        cmd: node index.js
+      async: 1000 # Runs node in the background
+      poll: 0 # Runs node in the background
+    - name: Ensure app is running
+      shell: ps aux | grep node
+      register: app_status # Sets above shell command into a variable
+    - debug: msg={{app_status.stdout_lines}} # Prints variable to console
+
