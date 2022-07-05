@@ -3,6 +3,8 @@ services:
   nginx:
     image: nginx
     container_name: nginx
+    environment:
+      - NGINX_PORT=80
     ports:
       - 8080:80
     healthcheck:

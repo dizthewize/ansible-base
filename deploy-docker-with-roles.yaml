@@ -47,25 +47,15 @@
 - name: Create new linux user
   hosts: aws_ec2
   become: yes
-  vars_files:
-    - project-vars
-  tasks:
-    - name: Create new linux user
-      user:
-        name: awsuser
-        groups: "{{user_groups}}"
+  roles:
+    - create_user
+
 
 
 - name: Start docker containers
   hosts: aws_ec2
   become: yes
   become_user: awsuser
-  tasks:
-    - name: Copy docker-compose
-      copy:
-        src: /Users/martezconner/Desktop/projects/devops/ansible-base/docker-compose.test.yaml
-        dest: /home/awsuser/docker-compose.yaml
-    - name: Start container from compose
-      docker_compose:
-        project_src: /home/awsuser
-        state: present
+  roles:
+    - start_containers
+

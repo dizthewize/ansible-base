@@ -1,0 +1,8 @@
+- name: Copy docker-compose
+  copy:
+  src: docker-compose.yaml
+  dest: /home/awsuser/docker-compose.yaml
+- name: Start container from compose
+  docker_compose:
+    project_src: /home/awsuser
+    state: present
